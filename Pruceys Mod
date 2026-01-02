@@ -1,341 +1,885 @@
-local Players = game:GetService("Players")
+ocal Players = game:GetService("Players")
+
 local RunService = game:GetService("RunService")
+
 local UserInputService = game:GetService("UserInputService")
+
 local TeleportService = game:GetService("TeleportService")
+
 local HttpService = game:GetService("HttpService")
 
+local Stats = game:GetService("Stats")
+
+
+
 local player = Players.LocalPlayer
+
 local camera = workspace.CurrentCamera
+
 local mouse = player:GetMouse()
 
+
+
 local clientSound = player:FindFirstChild("PruceyModSound") or Instance.new("Sound", player)
+
 clientSound.Name = "PruceyModSound"
 
+
+
 -- UI Setup
+
 local screenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+
 screenGui.Name = "PruceysModUI"
+
 screenGui.ResetOnSpawn = false
 
+
+
+-- MOVABLE PERFORMANCE OVERLAY
+
+local perfFrame = Instance.new("Frame", screenGui)
+
+perfFrame.Name = "PerfOverlay"
+
+perfFrame.Size = UDim2.new(0, 130, 0, 70)
+
+perfFrame.Position = UDim2.new(0.5, -65, 0.5, -35) -- Starts in middle
+
+perfFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+
+perfFrame.BackgroundTransparency = 0.3
+
+perfFrame.Visible = false
+
+perfFrame.Active = true
+
+perfFrame.Draggable = true -- Deprecated but simple; manual logic below for stability
+
+Instance.new("UICorner", perfFrame)
+
+local perfStroke = Instance.new("UIStroke", perfFrame)
+
+perfStroke.Color = Color3.fromRGB(0, 150, 255)
+
+perfStroke.Thickness = 2
+
+
+
+local function createPerfLabel(name, pos)
+
+    local l = Instance.new("TextLabel", perfFrame)
+
+    l.Name = name
+
+    l.Size = UDim2.new(1, 0, 0, 20)
+
+    l.Position = pos
+
+    l.BackgroundTransparency = 1
+
+    l.TextColor3 = Color3.new(1, 1, 1)
+
+    l.Font = Enum.Font.SourceSansBold
+
+    l.TextSize = 14
+
+    return l
+
+end
+
+
+
+local fpsLabel = createPerfLabel("FPSLabel", UDim2.new(0, 0, 0, 5))
+
+local pingLabel = createPerfLabel("PingLabel", UDim2.new(0, 0, 0, 25))
+
+local timeLabel = createPerfLabel("TimeLabel", UDim2.new(0, 0, 0, 45))
+
+timeLabel.TextColor3 = Color3.fromRGB(0, 150, 255)
+
+
+
+-- Draggable Logic for Perf Overlay
+
+local pDragging, pDragStart, pStartPos
+
+perfFrame.InputBegan:Connect(function(input)
+
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+
+        pDragging = true; pDragStart = input.Position; pStartPos = perfFrame.Position
+
+    end
+
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+
+    if pDragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+
+        local delta = input.Position - pDragStart
+
+        perfFrame.Position = UDim2.new(pStartPos.X.Scale, pStartPos.X.Offset + delta.X, pStartPos.Y.Scale, pStartPos.Y.Offset + delta.Y)
+
+    end
+
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then pDragging = false end
+
+end)
+
+
+
 local openBtn = Instance.new("TextButton", screenGui)
+
 openBtn.Size = UDim2.new(0, 60, 0, 60)
+
 openBtn.Position = UDim2.new(0, 20, 0.5, -30)
+
 openBtn.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+
 openBtn.Text = "DEV"
+
 openBtn.TextColor3 = Color3.fromRGB(255, 0, 0)
+
 openBtn.Font = Enum.Font.SourceSansBold
+
 openBtn.TextSize = 25
+
 openBtn.Visible = false
+
 Instance.new("UICorner", openBtn).CornerRadius = UDim.new(1, 0)
 
+
+
 local mainFrame = Instance.new("Frame", screenGui)
+
 mainFrame.Size = UDim2.new(0, 500, 0, 450)
+
 mainFrame.Position = UDim2.new(0.5, -250, 0.5, -225)
+
 mainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+
 mainFrame.Active = true
+
 Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 12)
+
 local panelStroke = Instance.new("UIStroke", mainFrame)
+
 panelStroke.Color = Color3.fromRGB(0, 150, 255)
+
 panelStroke.Thickness = 3
 
+
+
 -- TOP BAR
+
 local topBar = Instance.new("Frame", mainFrame)
+
 topBar.Size = UDim2.new(1, 0, 0, 40)
+
 topBar.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+
 Instance.new("UICorner", topBar).CornerRadius = UDim.new(0, 12)
 
+
+
 local title = Instance.new("TextLabel", topBar)
+
 title.Text = "Pruceys Mod"
+
 title.Size = UDim2.new(1, -50, 1, 0)
+
 title.Position = UDim2.new(0, 15, 0, 0)
+
 title.TextColor3 = Color3.fromRGB(255, 0, 0)
+
 title.Font = Enum.Font.SourceSansBold
+
 title.TextSize = 22
+
 title.BackgroundTransparency = 1
+
 title.TextXAlignment = Enum.TextXAlignment.Left
 
+
+
 local closeBtn = Instance.new("TextButton", topBar)
+
 closeBtn.Size = UDim2.new(0, 30, 0, 30)
+
 closeBtn.Position = UDim2.new(1, -35, 0, 5)
+
 closeBtn.Text = "X"
+
 closeBtn.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+
 closeBtn.TextColor3 = Color3.new(1, 1, 1)
+
 closeBtn.Font = Enum.Font.SourceSansBold
+
 Instance.new("UICorner", closeBtn)
 
+
+
 local sidebar = Instance.new("Frame", mainFrame)
+
 sidebar.Size = UDim2.new(0, 110, 1, -60)
+
 sidebar.Position = UDim2.new(0, 10, 0, 50)
+
 sidebar.BackgroundTransparency = 1
+
 Instance.new("UIListLayout", sidebar).Padding = UDim.new(0, 8)
 
+
+
 local container = Instance.new("Frame", mainFrame)
+
 container.Size = UDim2.new(1, -140, 1, -60)
+
 container.Position = UDim2.new(0, 130, 0, 50)
+
 container.BackgroundTransparency = 1
 
+
+
 -- VIEW NAVIGATOR
+
 local viewNav = Instance.new("Frame", screenGui)
+
 viewNav.Size = UDim2.new(0, 320, 0, 50)
+
 viewNav.Position = UDim2.new(0.5, -160, 0.85, 0)
+
 viewNav.BackgroundTransparency = 1
+
 viewNav.Visible = false
 
+
+
 local function styleNavBtn(btn, text, size, pos)
+
     btn.Size = size; btn.Position = pos; btn.BackgroundColor3 = Color3.new(0,0,0)
+
     btn.Text = text; btn.TextColor3 = Color3.new(1,0,0); btn.Font = Enum.Font.SourceSansBold
+
     btn.TextSize = 14; Instance.new("UICorner", btn)
+
     local s = Instance.new("UIStroke", btn); s.Color = Color3.fromRGB(0, 150, 255); s.Thickness = 2
+
 end
+
+
 
 local prevBtn = Instance.new("TextButton", viewNav); styleNavBtn(prevBtn, "<", UDim2.new(0, 45, 1, 0), UDim2.new(0, 0, 0, 0))
+
 local stopBtn = Instance.new("TextButton", viewNav); styleNavBtn(stopBtn, "STOP VIEWING", UDim2.new(0, 220, 1, 0), UDim2.new(0, 50, 0, 0))
+
 local nextBtn = Instance.new("TextButton", viewNav); styleNavBtn(nextBtn, ">", UDim2.new(0, 45, 1, 0), UDim2.new(0, 275, 0, 0))
 
+
+
 -- State
+
 local pages = {}
+
 local flying, noclip, espEnabled, infJump = false, false, false, false
+
 local lasersEnabled, invisible, noAnims = false, false, false
+
 local flySpeed, walkSpeed, jumpPower = 50, 16, 50
+
 local viewingIndex = 1
+
 local waypoints = {}
 
+
+
 -- UI Helpers
+
 local function createStyledBtn(text, parent, callback)
+
     local b = Instance.new("TextButton", parent)
+
     b.Size = UDim2.new(1, -10, 0, 40); b.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+
     b.Text = text; b.TextColor3 = Color3.fromRGB(255, 0, 0); b.Font = Enum.Font.SourceSansBold
+
     b.TextSize = 14; Instance.new("UICorner", b)
+
     b.MouseButton1Click:Connect(function() callback(b) end)
+
     return b
+
 end
+
+
 
 local function createStyledInput(placeholder, parent, callback)
+
     local tb = Instance.new("TextBox", parent)
+
     tb.Size = UDim2.new(1, -10, 0, 40); tb.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+
     tb.PlaceholderText = placeholder; tb.Text = ""; tb.TextColor3 = Color3.fromRGB(255, 0, 0)
+
     tb.Font = Enum.Font.SourceSansBold; tb.TextSize = 14; Instance.new("UICorner", tb)
+
     tb.FocusLost:Connect(function(enter) if enter then callback(tb.Text) end end)
+
     return tb
+
 end
+
+
+
+-- SLIDER HELPER
+
+local function createStyledSlider(text, min, max, default, parent, callback)
+
+    local sliderFrame = Instance.new("Frame", parent)
+
+    sliderFrame.Size = UDim2.new(1, -10, 0, 50)
+
+    sliderFrame.BackgroundTransparency = 1
+
+
+
+    local label = Instance.new("TextLabel", sliderFrame)
+
+    label.Size = UDim2.new(1, 0, 0, 20)
+
+    label.Text = text .. ": " .. default
+
+    label.TextColor3 = Color3.fromRGB(255, 0, 0)
+
+    label.BackgroundTransparency = 1
+
+    label.Font = Enum.Font.SourceSansBold
+
+    label.TextSize = 14
+
+
+
+    local bar = Instance.new("Frame", sliderFrame)
+
+    bar.Size = UDim2.new(1, -20, 0, 6)
+
+    bar.Position = UDim2.new(0, 10, 0, 30)
+
+    bar.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+
+    Instance.new("UICorner", bar)
+
+
+
+    local fill = Instance.new("Frame", bar)
+
+    fill.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
+
+    fill.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+
+    Instance.new("UICorner", fill)
+
+
+
+    local circle = Instance.new("Frame", bar)
+
+    circle.Size = UDim2.new(0, 14, 0, 14)
+
+    circle.AnchorPoint = Vector2.new(0.5, 0.5)
+
+    circle.Position = UDim2.new((default - min) / (max - min), 0, 0.5, 0)
+
+    circle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+
+    Instance.new("UICorner", circle).CornerRadius = UDim.new(1, 0)
+
+    local cStroke = Instance.new("UIStroke", circle)
+
+    cStroke.Color = Color3.fromRGB(0, 150, 255)
+
+    cStroke.Thickness = 2
+
+
+
+    local function update(input)
+
+        local pos = math.clamp((input.Position.X - bar.AbsolutePosition.X) / bar.AbsoluteSize.X, 0, 1)
+
+        fill.Size = UDim2.new(pos, 0, 1, 0)
+
+        circle.Position = UDim2.new(pos, 0, 0.5, 0)
+
+        local value = math.floor(min + (pos * (max - min)))
+
+        label.Text = text .. ": " .. value
+
+        callback(value)
+
+    end
+
+
+
+    local sliding = false
+
+    bar.InputBegan:Connect(function(input)
+
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then sliding = true update(input) end
+
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+
+        if sliding and input.UserInputType == Enum.UserInputType.MouseMovement then update(input) end
+
+    end)
+
+    UserInputService.InputEnded:Connect(function(input)
+
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then sliding = false end
+
+    end)
+
+    return sliderFrame, fill, label, circle
+
+end
+
+
 
 local function createPage(name)
+
     local scroll = Instance.new("ScrollingFrame", container)
+
     scroll.Name = name; scroll.Size = UDim2.new(1, 0, 1, 0); scroll.Visible = false
+
     scroll.BackgroundTransparency = 1; scroll.ScrollBarThickness = 4; scroll.ScrollBarImageColor3 = Color3.fromRGB(0, 150, 255)
+
     local list = Instance.new("UIListLayout", scroll); list.Padding = UDim.new(0, 10)
+
     list:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function() scroll.CanvasSize = UDim2.new(0, 0, 0, list.AbsoluteContentSize.Y + 20) end)
+
     pages[name] = scroll
+
     createStyledBtn(name:upper(), sidebar, function() for _, p in pairs(pages) do p.Visible = false end; scroll.Visible = true end)
+
     return scroll
+
 end
+
+
 
 local selfPage = createPage("Self")
+
 local playerPage = createPage("Players")
+
 local clientPage = createPage("Client")
+
 local worldPage = createPage("World")
+
 local serverPage = createPage("Server")
+
 local musicPage = createPage("Music")
 
+
+
 -- SELF TAB
+
 createStyledInput("WalkSpeed...", selfPage, function(v) walkSpeed = tonumber(v) or 16 end)
+
 createStyledInput("JumpPower...", selfPage, function(v) jumpPower = tonumber(v) or 50 end)
+
 createStyledInput("Fly Speed...", selfPage, function(v) flySpeed = tonumber(v) or 50 end)
+
 createStyledBtn("No Anims: OFF", selfPage, function(b)
+
     noAnims = not noAnims
+
     b.Text = noAnims and "No Anims: ON" or "No Anims: OFF"
+
     local animScript = player.Character and player.Character:FindFirstChild("Animate")
+
     if animScript then animScript.Disabled = noAnims end
+
 end)
+
 createStyledBtn("Fly: OFF", selfPage, function(b)
+
     flying = not flying; b.Text = flying and "Fly: ON" or "Fly: OFF"
+
     local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+
     if root and flying then
+
         local bv = Instance.new("BodyVelocity", root); bv.Name = "FlyV"; bv.MaxForce = Vector3.new(1,1,1)*math.huge; bv.Velocity = Vector3.new(0,0,0)
+
         local bg = Instance.new("BodyGyro", root); bg.Name = "FlyG"; bg.MaxTorque = Vector3.new(1,1,1)*math.huge; bg.CFrame = root.CFrame
+
     elseif root then
+
         if root:FindFirstChild("FlyV") then root.FlyV:Destroy() end
+
         if root:FindFirstChild("FlyG") then root.FlyG:Destroy() end
+
     end
+
 end)
+
 createStyledBtn("Noclip: OFF", selfPage, function(b) noclip = not noclip; b.Text = noclip and "Noclip: ON" or "Noclip: OFF" end)
+
 createStyledBtn("Inf Jump: OFF", selfPage, function(b) infJump = not infJump; b.Text = infJump and "Inf Jump: ON" or "Inf Jump: OFF" end)
 
+
+
 -- CLIENT TAB
+
+createStyledBtn("Performance Overlay: OFF", clientPage, function(b)
+
+    perfFrame.Visible = not perfFrame.Visible
+
+    if perfFrame.Visible then
+
+        perfFrame.Position = UDim2.new(0.5, -65, 0.5, -35) -- Center it when turned on
+
+    end
+
+    b.Text = perfFrame.Visible and "Performance Overlay: ON" or "Performance Overlay: OFF"
+
+end)
+
+
+
 local function createLaser(name)
+
     local beam = Instance.new("Beam"); beam.Name = name; beam.Width0 = 0.2; beam.Width1 = 0.2; beam.FaceCamera = true
+
     beam.LightEmission = 1; beam.LightInfluence = 0; beam.Enabled = false
+
     local att0 = Instance.new("Attachment"); local att1 = Instance.new("Attachment"); att1.Name = name .. "End"
+
     beam.Attachment0 = att0; beam.Attachment1 = att1; return beam, att0, att1
+
 end
+
 local laserL, attL0, attL1 = createLaser("LeftLaser"); local laserR, attR0, attR1 = createLaser("RightLaser")
 
+
+
 local function toggleEffect(effectClass, effectName)
+
     local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+
     if not root then return end
+
     local existing = root:FindFirstChild(effectName)
+
     if existing then existing:Destroy() else
+
         local e = Instance.new(effectClass, root); e.Name = effectName
+
         if effectName == "WaterEffect" then e.Color = Color3.fromRGB(0, 150, 255) e.Opacity = 0.5 end
+
     end
+
 end
+
+
 
 createStyledBtn("Rainbow Lasers: OFF", clientPage, function(b) lasersEnabled = not lasersEnabled; b.Text = lasersEnabled and "Rainbow Lasers: ON" or "Rainbow Lasers: OFF" end)
+
 createStyledBtn("Client Invis: OFF", clientPage, function(b) invisible = not invisible; b.Text = invisible and "Client Invis: ON" or "Client Invis: OFF" end)
+
 createStyledBtn("Sparkles", clientPage, function() toggleEffect("Sparkles", "SparkleEffect") end)
+
 createStyledBtn("Fire", clientPage, function() toggleEffect("Fire", "FireEffect") end)
+
 createStyledBtn("Water", clientPage, function() toggleEffect("Smoke", "WaterEffect") end)
 
+
+
 -- PLAYERS TAB
+
 local playerScroll = Instance.new("ScrollingFrame", playerPage)
+
 playerScroll.Size = UDim2.new(1, 0, 1, -95); playerScroll.Position = UDim2.new(0, 0, 0, 95); playerScroll.BackgroundTransparency = 1; playerScroll.ScrollBarThickness = 4
+
 Instance.new("UIListLayout", playerScroll).Padding = UDim.new(0, 10)
 
+
+
 local function updateView(targetPlayer)
+
     if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("Humanoid") then
+
         camera.CameraSubject = targetPlayer.Character.Humanoid; stopBtn.Text = "STOP: "..targetPlayer.DisplayName:upper(); viewNav.Visible = true
+
     end
+
 end
+
+
 
 local function refreshPlayers(filter)
+
     playerScroll:ClearAllChildren()
+
     Instance.new("UIListLayout", playerScroll).Padding = UDim.new(0, 10)
+
     for _, p in pairs(Players:GetPlayers()) do
+
         if p ~= player then
+
             if not filter or p.DisplayName:lower():find(filter:lower()) or p.Name:lower():find(filter:lower()) then
+
                 local row = Instance.new("Frame", playerScroll); row.Size = UDim2.new(1, -10, 0, 40); row.BackgroundTransparency = 1
+
                 createStyledBtn("TP", row, function() player.Character:SetPrimaryPartCFrame(p.Character.PrimaryPart.CFrame) end).Size = UDim2.new(0.2, 0, 1, 0)
+
                 local vw = createStyledBtn("VIEW: " .. p.DisplayName, row, function() updateView(p) end)
+
                 vw.Size = UDim2.new(0.75, 0, 1, 0); vw.Position = UDim2.new(0.25, 0, 0, 0)
+
             end
+
         end
+
     end
+
 end
+
+
 
 local searchBox = createStyledInput("Search players...", playerPage, function() end)
+
 searchBox.Position = UDim2.new(0,0,0,0)
+
 searchBox:GetPropertyChangedSignal("Text"):Connect(function() refreshPlayers(searchBox.Text) end)
+
 local manualRef = createStyledBtn("REFRESH PLAYER LIST", playerPage, function() refreshPlayers(searchBox.Text) end)
+
 manualRef.Position = UDim2.new(0, 0, 0, 45); manualRef.BackgroundColor3 = Color3.fromRGB(40, 0, 0)
 
+
+
 nextBtn.MouseButton1Click:Connect(function()
+
     local t = {}; for _, p in pairs(Players:GetPlayers()) do if p ~= player then table.insert(t, p) end end
+
     if #t > 0 then viewingIndex = (viewingIndex % #t) + 1; updateView(t[viewingIndex]) end
+
 end)
+
 prevBtn.MouseButton1Click:Connect(function()
+
     local t = {}; for _, p in pairs(Players:GetPlayers()) do if p ~= player then table.insert(t, p) end end
+
     if #t > 0 then viewingIndex = (viewingIndex - 2 + #t) % #t + 1; updateView(t[viewingIndex]) end
+
 end)
+
 stopBtn.MouseButton1Click:Connect(function() camera.CameraSubject = player.Character:FindFirstChild("Humanoid"); viewNav.Visible = false end)
+
 refreshPlayers()
 
--- WORLD TAB (Waypoints Included)
+
+
+-- WORLD TAB
+
 createStyledBtn("ESP: OFF", worldPage, function(b) espEnabled = not espEnabled; b.Text = espEnabled and "ESP: ON" or "ESP: OFF" end)
 
+local fovSlider, fovFill, fovLabel, fovCircle = createStyledSlider("Field of View", 30, 120, 70, worldPage, function(val) camera.FieldOfView = val end)
+
+
+
 local wpTitle = Instance.new("TextLabel", worldPage)
+
 wpTitle.Size = UDim2.new(1, -10, 0, 30); wpTitle.BackgroundTransparency = 1
+
 wpTitle.Text = "--- WAYPOINTS ---"; wpTitle.TextColor3 = Color3.fromRGB(0, 150, 255)
+
 wpTitle.Font = Enum.Font.SourceSansBold; wpTitle.TextSize = 16
 
+
+
 local waypointScroll = Instance.new("ScrollingFrame", worldPage)
+
 waypointScroll.Size = UDim2.new(1, 0, 0, 150); waypointScroll.BackgroundTransparency = 0.9; waypointScroll.BackgroundColor3 = Color3.new(0,0,0)
+
 waypointScroll.ScrollBarThickness = 4; local wpList = Instance.new("UIListLayout", waypointScroll); wpList.Padding = UDim.new(0, 5)
 
+
+
 local function refreshWaypoints()
+
     for _, child in pairs(waypointScroll:GetChildren()) do if child:IsA("Frame") then child:Destroy() end end
+
     for name, cframe in pairs(waypoints) do
+
         local row = Instance.new("Frame", waypointScroll); row.Size = UDim2.new(1, -10, 0, 30); row.BackgroundTransparency = 1
+
         local tp = createStyledBtn(name, row, function() if player.Character then player.Character:SetPrimaryPartCFrame(cframe) end end)
+
         tp.Size = UDim2.new(0.75, 0, 1, 0); tp.TextSize = 12
+
         local del = createStyledBtn("X", row, function() waypoints[name] = nil; refreshWaypoints() end)
+
         del.Size = UDim2.new(0.2, 0, 1, 0); del.Position = UDim2.new(0.8, 0, 0, 0); del.BackgroundColor3 = Color3.fromRGB(100, 0, 0)
+
     end
-    waypointScroll.CanvasSize = UDim2.new(0, 0, 0, wpList.AbsoluteContentSize.Y)
+
 end
+
+
 
 local wpInput = createStyledInput("Waypoint Name...", worldPage, function(text) end)
+
 createStyledBtn("SAVE CURRENT POSITION", worldPage, function()
+
     local name = wpInput.Text ~= "" and wpInput.Text or "Pos_"..math.random(100,999)
-    if player.Character then 
-        waypoints[name] = player.Character.PrimaryPart.CFrame
-        refreshWaypoints()
-        wpInput.Text = ""
-    end
+
+    if player.Character then waypoints[name] = player.Character.PrimaryPart.CFrame; refreshWaypoints(); wpInput.Text = "" end
+
 end).BackgroundColor3 = Color3.fromRGB(0, 60, 0)
 
-local function createESP(p)
-    if screenGui:FindFirstChild("ESP_"..p.Name) then return end
-    local f = Instance.new("Folder", screenGui); f.Name = "ESP_"..p.Name
-    local bg = Instance.new("BillboardGui", f); bg.AlwaysOnTop = true; bg.Size = UDim2.new(4, 0, 5, 0); bg.Name = "UI"
-    local box = Instance.new("Frame", bg); box.Size = UDim2.new(1, 0, 1, 0); box.BackgroundTransparency = 0.7; box.BackgroundColor3 = Color3.new(1, 0, 0)
-    Instance.new("UIStroke", box).Color = Color3.new(1,0,0)
-    local txt = Instance.new("TextLabel", bg); txt.Text = p.DisplayName; txt.Size = UDim2.new(2, 0, 0.5, 0); txt.Position = UDim2.new(-0.5, 0, -0.7, 0)
-    txt.TextColor3 = Color3.new(1,1,1); txt.BackgroundTransparency = 1; txt.Font = Enum.Font.SourceSansBold; txt.TextSize = 16
-end
 
--- SERVER
+
+-- SERVER TAB
+
 createStyledBtn("SERVER HOP", serverPage, function()
+
     local x = HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/"..game.PlaceId.."/servers/Public?sortOrder=Asc&limit=100"))
+
     for _, v in pairs(x.data) do if v.playing < v.maxPlayers and v.id ~= game.JobId then TeleportService:TeleportToPlaceInstance(game.PlaceId, v.id, player) break end end
+
 end)
+
+createStyledBtn("REJOIN SERVER", serverPage, function()
+
+    if #Players:GetPlayers() <= 1 then TeleportService:Teleport(game.PlaceId, player) else TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, player) end
+
+end)
+
 createStyledBtn("KICK SELF", serverPage, function() player:Kick("You kicked yourself! 😉") end)
 
+
+
 -- MUSIC
+
 local pLab = Instance.new("TextLabel", musicPage); pLab.Size = UDim2.new(1, -10, 0, 20); pLab.BackgroundTransparency = 1; pLab.TextColor3 = Color3.new(1,0,0); pLab.Text = "No Music"
+
 createStyledInput("Sound ID...", musicPage, function(v) 
+
     local id = v:match("%d+")
+
     if id then clientSound:Stop(); clientSound.SoundId = "rbxassetid://"..id; clientSound:Play(); pLab.Text = "Playing: "..id end
+
 end)
+
 createStyledBtn("STOP MUSIC", musicPage, function() clientSound:Stop(); pLab.Text = "Stopped" end)
 
+
+
 -- MAIN LOOPS
+
 RunService.Stepped:Connect(function()
+
     local char = player.Character
+
     if char and char:FindFirstChild("Humanoid") then
+
         char.Humanoid.WalkSpeed = walkSpeed; char.Humanoid.JumpPower = jumpPower
-        local anims = char:FindFirstChild("Animate")
-        if anims then anims.Disabled = noAnims end
+
     end
-    if char and invisible then
-        for _, part in pairs(char:GetDescendants()) do if part:IsA("BasePart") or part:IsA("Decal") then part.LocalTransparencyModifier = 1 end end
-    elseif char then
-        for _, part in pairs(char:GetDescendants()) do if part:IsA("BasePart") or part:IsA("Decal") then part.LocalTransparencyModifier = 0 end end
-    end
+
     if noclip and char then
+
         for _, part in pairs(char:GetDescendants()) do if part:IsA("BasePart") then part.CanCollide = false end end
+
     end
-    for _, p in pairs(Players:GetPlayers()) do
-        local f = screenGui:FindFirstChild("ESP_"..p.Name)
-        if espEnabled and p ~= player and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-            if not f then createESP(p) else f.UI.Adornee = p.Character.HumanoidRootPart end
-        elseif f then f:Destroy() end
-    end
+
 end)
 
-RunService.RenderStepped:Connect(function()
-    local char = player.Character; local head = char and char:FindFirstChild("Head"); local root = char and char:FindFirstChild("HumanoidRootPart")
-    if lasersEnabled and head then
-        local color = Color3.fromHSV(tick() % 5 / 5, 1, 1)
-        laserL.Enabled = true; laserR.Enabled = true; laserL.Color = ColorSequence.new(color); laserR.Color = ColorSequence.new(color)
-        attL0.Parent = head; attR0.Parent = head; attL1.Parent = workspace.Terrain; attR1.Parent = workspace.Terrain
-        laserL.Parent = head; laserR.Parent = head; attL0.Position = Vector3.new(-0.2, 0.2, -0.5); attR0.Position = Vector3.new(0.2, 0.2, -0.5)
-        attL1.Position = mouse.Hit.Position; attR1.Position = mouse.Hit.Position
-    else laserL.Enabled = false; laserR.Enabled = false end
-    if flying and root and root:FindFirstChild("FlyV") then
-        local dir = Vector3.new(0,0,0)
-        if UserInputService:IsKeyDown(Enum.KeyCode.W) then dir = dir + camera.CFrame.LookVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.S) then dir = dir - camera.CFrame.LookVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.A) then dir = dir - camera.CFrame.RightVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.D) then dir = dir + camera.CFrame.RightVector end
-        root.FlyV.Velocity = dir * flySpeed; root.FlyG.CFrame = camera.CFrame
+
+
+local lastPerfUpdate = 0
+
+RunService.RenderStepped:Connect(function(dt)
+
+    -- Perf Update logic
+
+    if tick() - lastPerfUpdate > 0.5 then
+
+        lastPerfUpdate = tick()
+
+        fpsLabel.Text = "FPS: " .. math.floor(1/dt)
+
+        pingLabel.Text = "Ping: " .. math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue()) .. " ms"
+
+        timeLabel.Text = os.date("%I:%M:%S %p")
+
     end
+
+
+
+    local char = player.Character; local head = char and char:FindFirstChild("Head"); local root = char and char:FindFirstChild("HumanoidRootPart")
+
+    if lasersEnabled and head then
+
+        local color = Color3.fromHSV(tick() % 5 / 5, 1, 1)
+
+        laserL.Enabled = true; laserR.Enabled = true; laserL.Color = ColorSequence.new(color); laserR.Color = ColorSequence.new(color)
+
+        attL0.Parent = head; attR0.Parent = head; attL1.Parent = workspace.Terrain; attR1.Parent = workspace.Terrain
+
+        laserL.Parent = head; laserR.Parent = head; attL0.Position = Vector3.new(-0.2, 0.2, -0.5); attR0.Position = Vector3.new(0.2, 0.2, -0.5)
+
+        attL1.Position = mouse.Hit.Position; attR1.Position = mouse.Hit.Position
+
+    else laserL.Enabled = false; laserR.Enabled = false end
+
+    if flying and root and root:FindFirstChild("FlyV") then
+
+        local dir = Vector3.new(0,0,0)
+
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) then dir = dir + camera.CFrame.LookVector end
+
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) then dir = dir - camera.CFrame.LookVector end
+
+        if UserInputService:IsKeyDown(Enum.KeyCode.A) then dir = dir - camera.CFrame.RightVector end
+
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) then dir = dir + camera.CFrame.RightVector end
+
+        root.FlyV.Velocity = dir * flySpeed; root.FlyG.CFrame = camera.CFrame
+
+    end
+
 end)
+
+
 
 UserInputService.JumpRequest:Connect(function() if infJump and player.Character and player.Character:FindFirstChildOfClass("Humanoid") then player.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping") end end)
 
+
+
+-- MAIN UI DRAG LOGIC
+
 local dragging, dragStart, startPos
+
 topBar.InputBegan:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = true; dragStart = input.Position; startPos = mainFrame.Position end end)
+
 UserInputService.InputChanged:Connect(function(input) if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then local delta = input.Position - dragStart; mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y) end end)
+
 UserInputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end end)
+
 closeBtn.MouseButton1Click:Connect(function() mainFrame.Visible = false; openBtn.Visible = true end)
+
 openBtn.MouseButton1Click:Connect(function() mainFrame.Visible = true; openBtn.Visible = false end)
+
+
+
 pages["Self"].Visible = true
