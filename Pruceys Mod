@@ -105,8 +105,8 @@ local nextBtn = Instance.new("TextButton", viewNav); styleNavBtn(nextBtn, ">", U
 -- Variables
 local pages = {}
 local flying, noclip, espEnabled, infJump = false, false, false, false
+local lasersEnabled = false
 local flySpeed, walkSpeed, jumpPower = 50, 16, 50
-local viewIndex = 1
 
 -- Helpers
 local function createStyledBtn(text, parent, callback)
@@ -159,9 +159,32 @@ end
 
 local selfPage = createPage("Self")
 local playerPage = createPage("Players")
+local clientPage = createPage("Client")
 local worldPage = createPage("World")
 local serverPage = createPage("Server")
 local musicPage = createPage("Music")
+
+-- LASER SETUP
+local function createLaser(name)
+    local beam = Instance.new("Beam")
+    beam.Name = name
+    beam.Width0 = 0.2
+    beam.Width1 = 0.2
+    beam.FaceCamera = true
+    beam.Color = ColorSequence.new(Color3.fromRGB(255, 0, 0))
+    beam.LightEmission = 1
+    beam.LightInfluence = 0
+    beam.Enabled = false
+    local att0 = Instance.new("Attachment")
+    local att1 = Instance.new("Attachment")
+    att1.Name = name .. "End"
+    beam.Attachment0 = att0
+    beam.Attachment1 = att1
+    return beam, att0, att1
+end
+
+local laserL, attL0, attL1 = createLaser("LeftLaser")
+local laserR, attR0, attR1 = createLaser("RightLaser")
 
 -- SELF TAB CONTENT
 createStyledInput("WalkSpeed...", selfPage, function(v) walkSpeed = tonumber(v) or 16 end)
@@ -188,20 +211,39 @@ createStyledBtn("Inf Jump: OFF", selfPage, function(b)
     b.Text = infJump and "Inf Jump: ON" or "Inf Jump: OFF"
 end)
 
+-- CLIENT TAB CONTENT
+local function toggleEffect(effectClass, effectName)
+    local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+    local existing = root:FindFirstChild(effectName)
+    if existing then existing:Destroy() else
+        local e = Instance.new(effectClass, root)
+        e.Name = effectName
+        if effectName == "WaterEffect" then e.Color = Color3.fromRGB(0, 150, 255) e.Opacity = 0.5 end
+    end
+end
+
+createStyledBtn("Laser Eyes: OFF", clientPage, function(b)
+    lasersEnabled = not lasersEnabled
+    b.Text = lasersEnabled and "Laser Eyes: ON" or "Laser Eyes: OFF"
+end)
+createStyledBtn("Sparkles", clientPage, function() toggleEffect("Sparkles", "SparkleEffect") end)
+createStyledBtn("Fire", clientPage, function() toggleEffect("Fire", "FireEffect") end)
+createStyledBtn("Water", clientPage, function() toggleEffect("Smoke", "WaterEffect") end)
+
 -- PLAYER LIST
 local function refreshPlayers()
     playerPage:ClearAllChildren()
     Instance.new("UIListLayout", playerPage).Padding = UDim.new(0, 10)
     createStyledBtn("REFRESH LIST", playerPage, refreshPlayers).BackgroundColor3 = Color3.fromRGB(40,0,0)
-    local allP = Players:GetPlayers()
-    for i, p in pairs(allP) do
+    for i, p in pairs(Players:GetPlayers()) do
         if p ~= player then
             local row = Instance.new("Frame", playerPage)
             row.Size = UDim2.new(1, -10, 0, 40); row.BackgroundTransparency = 1
             createStyledBtn("TP", row, function() player.Character:MoveTo(p.Character.PrimaryPart.Position) end).Size = UDim2.new(0.3, 0, 1, 0)
             local vw = createStyledBtn("VIEW: "..p.DisplayName, row, function()
                 camera.CameraSubject = p.Character:FindFirstChild("Humanoid")
-                viewIndex = i; stopBtn.Text = "STOP: "..p.DisplayName:upper(); viewNav.Visible = true
+                stopBtn.Text = "STOP: "..p.DisplayName:upper(); viewNav.Visible = true
             end)
             vw.Size = UDim2.new(0.65, 0, 1, 0); vw.Position = UDim2.new(0.35, 0, 0, 0)
         end
@@ -218,27 +260,13 @@ createStyledBtn("KICK SELF", serverPage, function() player:Kick("You kicked your
 
 -- MUSIC
 local playingText = Instance.new("TextLabel", musicPage)
-playingText.Size = UDim2.new(1, -10, 0, 20)
-playingText.BackgroundTransparency = 1
-playingText.TextColor3 = Color3.new(0, 0.6, 1)
-playingText.Text = "Nothing Playing"
-playingText.Font = Enum.Font.SourceSansItalic
-playingText.TextSize = 14
-
+playingText.Size = UDim2.new(1, -10, 0, 20); playingText.BackgroundTransparency = 1; playingText.TextColor3 = Color3.new(0, 0.6, 1)
+playingText.Text = "Nothing Playing"; playingText.Font = Enum.Font.SourceSansItalic; playingText.TextSize = 14
 createStyledInput("Enter Sound ID...", musicPage, function(v)
     local id = v:match("%d+")
-    if id then 
-        clientSound:Stop()
-        clientSound.SoundId = "rbxassetid://"..id
-        clientSound:Play() 
-        playingText.Text = "Playing ID: "..id
-    end
+    if id then clientSound:Stop() clientSound.SoundId = "rbxassetid://"..id clientSound:Play() playingText.Text = "Playing ID: "..id end
 end)
-
-createStyledBtn("STOP MUSIC", musicPage, function() 
-    clientSound:Stop() 
-    playingText.Text = "Music Stopped"
-end)
+createStyledBtn("STOP MUSIC", musicPage, function() clientSound:Stop() playingText.Text = "Music Stopped" end)
 
 -- WORLD (ESP)
 createStyledBtn("ESP: OFF", worldPage, function(b) espEnabled = not espEnabled; b.Text = espEnabled and "ESP: ON" or "ESP: OFF" end)
@@ -266,9 +294,7 @@ RunService.Stepped:Connect(function()
         player.Character.Humanoid.JumpPower = jumpPower
     end
     if noclip and player.Character then
-        for _, part in pairs(player.Character:GetDescendants()) do
-            if part:IsA("BasePart") then part.CanCollide = false end
-        end
+        for _, part in pairs(player.Character:GetDescendants()) do if part:IsA("BasePart") then part.CanCollide = false end end
     end
     for _, p in pairs(Players:GetPlayers()) do
         local folder = screenGui:FindFirstChild("ESP_"..p.Name)
@@ -279,7 +305,25 @@ RunService.Stepped:Connect(function()
 end)
 
 RunService.RenderStepped:Connect(function()
-    local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+    local char = player.Character
+    local head = char and char:FindFirstChild("Head")
+    local root = char and char:FindFirstChild("HumanoidRootPart")
+    
+    -- Laser Logic
+    if lasersEnabled and head then
+        laserL.Enabled = true laserR.Enabled = true
+        attL0.Parent = head attR0.Parent = head
+        attL1.Parent = workspace.Terrain attR1.Parent = workspace.Terrain
+        laserL.Parent = head laserR.Parent = head
+        attL0.Position = Vector3.new(-0.2, 0.2, -0.5)
+        attR0.Position = Vector3.new(0.2, 0.2, -0.5)
+        local targetPos = mouse.Hit.Position
+        attL1.Position = targetPos attR1.Position = targetPos
+    else
+        laserL.Enabled = false laserR.Enabled = false
+    end
+
+    -- Fly Logic
     if flying and root and root:FindFirstChild("FlyV") then
         local dir = Vector3.new(0,0,0)
         if UserInputService:IsKeyDown(Enum.KeyCode.W) then dir = dir + camera.CFrame.LookVector end
@@ -291,7 +335,6 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- Infinite Jump Logic
 UserInputService.JumpRequest:Connect(function()
     if infJump and player.Character and player.Character:FindFirstChildOfClass("Humanoid") then
         player.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping")
