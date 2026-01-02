@@ -97,6 +97,7 @@ local flying, noclip, espEnabled, infJump = false, false, false, false
 local lasersEnabled, invisible, noAnims = false, false, false
 local flySpeed, walkSpeed, jumpPower = 50, 16, 50
 local viewingIndex = 1
+local waypoints = {}
 
 -- UI Helpers
 local function createStyledBtn(text, parent, callback)
@@ -227,8 +228,40 @@ end)
 stopBtn.MouseButton1Click:Connect(function() camera.CameraSubject = player.Character:FindFirstChild("Humanoid"); viewNav.Visible = false end)
 refreshPlayers()
 
--- WORLD
+-- WORLD TAB (Waypoints Included)
 createStyledBtn("ESP: OFF", worldPage, function(b) espEnabled = not espEnabled; b.Text = espEnabled and "ESP: ON" or "ESP: OFF" end)
+
+local wpTitle = Instance.new("TextLabel", worldPage)
+wpTitle.Size = UDim2.new(1, -10, 0, 30); wpTitle.BackgroundTransparency = 1
+wpTitle.Text = "--- WAYPOINTS ---"; wpTitle.TextColor3 = Color3.fromRGB(0, 150, 255)
+wpTitle.Font = Enum.Font.SourceSansBold; wpTitle.TextSize = 16
+
+local waypointScroll = Instance.new("ScrollingFrame", worldPage)
+waypointScroll.Size = UDim2.new(1, 0, 0, 150); waypointScroll.BackgroundTransparency = 0.9; waypointScroll.BackgroundColor3 = Color3.new(0,0,0)
+waypointScroll.ScrollBarThickness = 4; local wpList = Instance.new("UIListLayout", waypointScroll); wpList.Padding = UDim.new(0, 5)
+
+local function refreshWaypoints()
+    for _, child in pairs(waypointScroll:GetChildren()) do if child:IsA("Frame") then child:Destroy() end end
+    for name, cframe in pairs(waypoints) do
+        local row = Instance.new("Frame", waypointScroll); row.Size = UDim2.new(1, -10, 0, 30); row.BackgroundTransparency = 1
+        local tp = createStyledBtn(name, row, function() if player.Character then player.Character:SetPrimaryPartCFrame(cframe) end end)
+        tp.Size = UDim2.new(0.75, 0, 1, 0); tp.TextSize = 12
+        local del = createStyledBtn("X", row, function() waypoints[name] = nil; refreshWaypoints() end)
+        del.Size = UDim2.new(0.2, 0, 1, 0); del.Position = UDim2.new(0.8, 0, 0, 0); del.BackgroundColor3 = Color3.fromRGB(100, 0, 0)
+    end
+    waypointScroll.CanvasSize = UDim2.new(0, 0, 0, wpList.AbsoluteContentSize.Y)
+end
+
+local wpInput = createStyledInput("Waypoint Name...", worldPage, function(text) end)
+createStyledBtn("SAVE CURRENT POSITION", worldPage, function()
+    local name = wpInput.Text ~= "" and wpInput.Text or "Pos_"..math.random(100,999)
+    if player.Character then 
+        waypoints[name] = player.Character.PrimaryPart.CFrame
+        refreshWaypoints()
+        wpInput.Text = ""
+    end
+end).BackgroundColor3 = Color3.fromRGB(0, 60, 0)
+
 local function createESP(p)
     if screenGui:FindFirstChild("ESP_"..p.Name) then return end
     local f = Instance.new("Folder", screenGui); f.Name = "ESP_"..p.Name
