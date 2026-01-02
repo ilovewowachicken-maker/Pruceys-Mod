@@ -8,7 +8,7 @@ local player = Players.LocalPlayer
 local camera = workspace.CurrentCamera
 local mouse = player:GetMouse()
 
--- Global Sound Object (Fixed for Stop command)
+-- Global Sound Object
 local clientSound = player:FindFirstChild("PruceyModSound") or Instance.new("Sound", player)
 clientSound.Name = "PruceyModSound"
 
@@ -104,7 +104,7 @@ local nextBtn = Instance.new("TextButton", viewNav); styleNavBtn(nextBtn, ">", U
 
 -- Variables
 local pages = {}
-local flying, noclip, espEnabled = false, false, false
+local flying, noclip, espEnabled, infJump = false, false, false, false
 local flySpeed, walkSpeed, jumpPower = 50, 16, 50
 local viewIndex = 1
 
@@ -163,7 +163,7 @@ local worldPage = createPage("World")
 local serverPage = createPage("Server")
 local musicPage = createPage("Music")
 
--- TAB CONTENT
+-- SELF TAB CONTENT
 createStyledInput("WalkSpeed...", selfPage, function(v) walkSpeed = tonumber(v) or 16 end)
 createStyledInput("JumpPower...", selfPage, function(v) jumpPower = tonumber(v) or 50 end)
 createStyledInput("Fly Speed...", selfPage, function(v) flySpeed = tonumber(v) or 50 end)
@@ -182,6 +182,10 @@ end)
 createStyledBtn("Noclip: OFF", selfPage, function(b) 
     noclip = not noclip
     b.Text = noclip and "Noclip: ON" or "Noclip: OFF"
+end)
+createStyledBtn("Inf Jump: OFF", selfPage, function(b)
+    infJump = not infJump
+    b.Text = infJump and "Inf Jump: ON" or "Inf Jump: OFF"
 end)
 
 -- PLAYER LIST
@@ -212,7 +216,7 @@ createStyledBtn("SERVER HOP", serverPage, function()
 end)
 createStyledBtn("KICK SELF", serverPage, function() player:Kick("You kicked yourself! 😉") end)
 
--- MUSIC (FIXED STOP LOGIC)
+-- MUSIC
 local playingText = Instance.new("TextLabel", musicPage)
 playingText.Size = UDim2.new(1, -10, 0, 20)
 playingText.BackgroundTransparency = 1
@@ -284,6 +288,13 @@ RunService.RenderStepped:Connect(function()
         if UserInputService:IsKeyDown(Enum.KeyCode.D) then dir = dir + camera.CFrame.RightVector end
         root.FlyV.Velocity = dir * flySpeed
         root.FlyG.CFrame = camera.CFrame
+    end
+end)
+
+-- Infinite Jump Logic
+UserInputService.JumpRequest:Connect(function()
+    if infJump and player.Character and player.Character:FindFirstChildOfClass("Humanoid") then
+        player.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping")
     end
 end)
 
