@@ -8,7 +8,6 @@ local player = Players.LocalPlayer
 local camera = workspace.CurrentCamera
 local mouse = player:GetMouse()
 
--- Global Sound Object
 local clientSound = player:FindFirstChild("PruceyModSound") or Instance.new("Sound", player)
 clientSound.Name = "PruceyModSound"
 
@@ -17,7 +16,6 @@ local screenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
 screenGui.Name = "PruceysModUI"
 screenGui.ResetOnSpawn = false
 
--- Open Button
 local openBtn = Instance.new("TextButton", screenGui)
 openBtn.Size = UDim2.new(0, 60, 0, 60)
 openBtn.Position = UDim2.new(0, 20, 0.5, -30)
@@ -29,7 +27,6 @@ openBtn.TextSize = 25
 openBtn.Visible = false
 Instance.new("UICorner", openBtn).CornerRadius = UDim.new(1, 0)
 
--- Main Frame
 local mainFrame = Instance.new("Frame", screenGui)
 mainFrame.Size = UDim2.new(0, 500, 0, 450)
 mainFrame.Position = UDim2.new(0.5, -250, 0.5, -225)
@@ -65,7 +62,6 @@ closeBtn.TextColor3 = Color3.new(1, 1, 1)
 closeBtn.Font = Enum.Font.SourceSansBold
 Instance.new("UICorner", closeBtn)
 
--- Navigation Sidebar
 local sidebar = Instance.new("Frame", mainFrame)
 sidebar.Size = UDim2.new(0, 110, 1, -60)
 sidebar.Position = UDim2.new(0, 10, 0, 50)
@@ -85,75 +81,50 @@ viewNav.BackgroundTransparency = 1
 viewNav.Visible = false
 
 local function styleNavBtn(btn, text, size, pos)
-    btn.Size = size
-    btn.Position = pos
-    btn.BackgroundColor3 = Color3.new(0,0,0)
-    btn.Text = text
-    btn.TextColor3 = Color3.new(1,0,0)
-    btn.Font = Enum.Font.SourceSansBold
-    btn.TextSize = 14
-    Instance.new("UICorner", btn)
-    local s = Instance.new("UIStroke", btn)
-    s.Color = Color3.fromRGB(0, 150, 255)
-    s.Thickness = 2
+    btn.Size = size; btn.Position = pos; btn.BackgroundColor3 = Color3.new(0,0,0)
+    btn.Text = text; btn.TextColor3 = Color3.new(1,0,0); btn.Font = Enum.Font.SourceSansBold
+    btn.TextSize = 14; Instance.new("UICorner", btn)
+    local s = Instance.new("UIStroke", btn); s.Color = Color3.fromRGB(0, 150, 255); s.Thickness = 2
 end
 
 local prevBtn = Instance.new("TextButton", viewNav); styleNavBtn(prevBtn, "<", UDim2.new(0, 45, 1, 0), UDim2.new(0, 0, 0, 0))
 local stopBtn = Instance.new("TextButton", viewNav); styleNavBtn(stopBtn, "STOP VIEWING", UDim2.new(0, 220, 1, 0), UDim2.new(0, 50, 0, 0))
 local nextBtn = Instance.new("TextButton", viewNav); styleNavBtn(nextBtn, ">", UDim2.new(0, 45, 1, 0), UDim2.new(0, 275, 0, 0))
 
--- Variables
+-- State
 local pages = {}
 local flying, noclip, espEnabled, infJump = false, false, false, false
-local lasersEnabled = false
+local lasersEnabled, invisible, noAnims = false, false, false
 local flySpeed, walkSpeed, jumpPower = 50, 16, 50
+local viewingIndex = 1
 
--- Helpers
+-- UI Helpers
 local function createStyledBtn(text, parent, callback)
     local b = Instance.new("TextButton", parent)
-    b.Size = UDim2.new(1, -10, 0, 40)
-    b.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-    b.Text = text
-    b.TextColor3 = Color3.fromRGB(255, 0, 0)
-    b.Font = Enum.Font.SourceSansBold
-    b.TextSize = 14
-    Instance.new("UICorner", b)
+    b.Size = UDim2.new(1, -10, 0, 40); b.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    b.Text = text; b.TextColor3 = Color3.fromRGB(255, 0, 0); b.Font = Enum.Font.SourceSansBold
+    b.TextSize = 14; Instance.new("UICorner", b)
     b.MouseButton1Click:Connect(function() callback(b) end)
     return b
 end
 
 local function createStyledInput(placeholder, parent, callback)
     local tb = Instance.new("TextBox", parent)
-    tb.Size = UDim2.new(1, -10, 0, 40)
-    tb.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-    tb.PlaceholderText = placeholder
-    tb.Text = ""
-    tb.TextColor3 = Color3.fromRGB(255, 0, 0)
-    tb.Font = Enum.Font.SourceSansBold
-    tb.TextSize = 14
-    Instance.new("UICorner", tb)
+    tb.Size = UDim2.new(1, -10, 0, 40); tb.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+    tb.PlaceholderText = placeholder; tb.Text = ""; tb.TextColor3 = Color3.fromRGB(255, 0, 0)
+    tb.Font = Enum.Font.SourceSansBold; tb.TextSize = 14; Instance.new("UICorner", tb)
     tb.FocusLost:Connect(function(enter) if enter then callback(tb.Text) end end)
     return tb
 end
 
 local function createPage(name)
     local scroll = Instance.new("ScrollingFrame", container)
-    scroll.Name = name
-    scroll.Size = UDim2.new(1, 0, 1, 0)
-    scroll.Visible = false
-    scroll.BackgroundTransparency = 1
-    scroll.ScrollBarThickness = 4
-    scroll.ScrollBarImageColor3 = Color3.fromRGB(0, 150, 255)
-    local list = Instance.new("UIListLayout", scroll)
-    list.Padding = UDim.new(0, 10)
-    list:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-        scroll.CanvasSize = UDim2.new(0, 0, 0, list.AbsoluteContentSize.Y + 20)
-    end)
+    scroll.Name = name; scroll.Size = UDim2.new(1, 0, 1, 0); scroll.Visible = false
+    scroll.BackgroundTransparency = 1; scroll.ScrollBarThickness = 4; scroll.ScrollBarImageColor3 = Color3.fromRGB(0, 150, 255)
+    local list = Instance.new("UIListLayout", scroll); list.Padding = UDim.new(0, 10)
+    list:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function() scroll.CanvasSize = UDim2.new(0, 0, 0, list.AbsoluteContentSize.Y + 20) end)
     pages[name] = scroll
-    createStyledBtn(name:upper(), sidebar, function()
-        for _, p in pairs(pages) do p.Visible = false end
-        scroll.Visible = true
-    end)
+    createStyledBtn(name:upper(), sidebar, function() for _, p in pairs(pages) do p.Visible = false end; scroll.Visible = true end)
     return scroll
 end
 
@@ -164,35 +135,18 @@ local worldPage = createPage("World")
 local serverPage = createPage("Server")
 local musicPage = createPage("Music")
 
--- LASER SETUP
-local function createLaser(name)
-    local beam = Instance.new("Beam")
-    beam.Name = name
-    beam.Width0 = 0.2
-    beam.Width1 = 0.2
-    beam.FaceCamera = true
-    beam.Color = ColorSequence.new(Color3.fromRGB(255, 0, 0))
-    beam.LightEmission = 1
-    beam.LightInfluence = 0
-    beam.Enabled = false
-    local att0 = Instance.new("Attachment")
-    local att1 = Instance.new("Attachment")
-    att1.Name = name .. "End"
-    beam.Attachment0 = att0
-    beam.Attachment1 = att1
-    return beam, att0, att1
-end
-
-local laserL, attL0, attL1 = createLaser("LeftLaser")
-local laserR, attR0, attR1 = createLaser("RightLaser")
-
--- SELF TAB CONTENT
+-- SELF TAB
 createStyledInput("WalkSpeed...", selfPage, function(v) walkSpeed = tonumber(v) or 16 end)
 createStyledInput("JumpPower...", selfPage, function(v) jumpPower = tonumber(v) or 50 end)
 createStyledInput("Fly Speed...", selfPage, function(v) flySpeed = tonumber(v) or 50 end)
+createStyledBtn("No Anims: OFF", selfPage, function(b)
+    noAnims = not noAnims
+    b.Text = noAnims and "No Anims: ON" or "No Anims: OFF"
+    local animScript = player.Character and player.Character:FindFirstChild("Animate")
+    if animScript then animScript.Disabled = noAnims end
+end)
 createStyledBtn("Fly: OFF", selfPage, function(b)
-    flying = not flying
-    b.Text = flying and "Fly: ON" or "Fly: OFF"
+    flying = not flying; b.Text = flying and "Fly: ON" or "Fly: OFF"
     local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
     if root and flying then
         local bv = Instance.new("BodyVelocity", root); bv.Name = "FlyV"; bv.MaxForce = Vector3.new(1,1,1)*math.huge; bv.Velocity = Vector3.new(0,0,0)
@@ -202,54 +156,88 @@ createStyledBtn("Fly: OFF", selfPage, function(b)
         if root:FindFirstChild("FlyG") then root.FlyG:Destroy() end
     end
 end)
-createStyledBtn("Noclip: OFF", selfPage, function(b) 
-    noclip = not noclip
-    b.Text = noclip and "Noclip: ON" or "Noclip: OFF"
-end)
-createStyledBtn("Inf Jump: OFF", selfPage, function(b)
-    infJump = not infJump
-    b.Text = infJump and "Inf Jump: ON" or "Inf Jump: OFF"
-end)
+createStyledBtn("Noclip: OFF", selfPage, function(b) noclip = not noclip; b.Text = noclip and "Noclip: ON" or "Noclip: OFF" end)
+createStyledBtn("Inf Jump: OFF", selfPage, function(b) infJump = not infJump; b.Text = infJump and "Inf Jump: ON" or "Inf Jump: OFF" end)
 
--- CLIENT TAB CONTENT
+-- CLIENT TAB
+local function createLaser(name)
+    local beam = Instance.new("Beam"); beam.Name = name; beam.Width0 = 0.2; beam.Width1 = 0.2; beam.FaceCamera = true
+    beam.LightEmission = 1; beam.LightInfluence = 0; beam.Enabled = false
+    local att0 = Instance.new("Attachment"); local att1 = Instance.new("Attachment"); att1.Name = name .. "End"
+    beam.Attachment0 = att0; beam.Attachment1 = att1; return beam, att0, att1
+end
+local laserL, attL0, attL1 = createLaser("LeftLaser"); local laserR, attR0, attR1 = createLaser("RightLaser")
+
 local function toggleEffect(effectClass, effectName)
     local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
     if not root then return end
     local existing = root:FindFirstChild(effectName)
     if existing then existing:Destroy() else
-        local e = Instance.new(effectClass, root)
-        e.Name = effectName
+        local e = Instance.new(effectClass, root); e.Name = effectName
         if effectName == "WaterEffect" then e.Color = Color3.fromRGB(0, 150, 255) e.Opacity = 0.5 end
     end
 end
 
-createStyledBtn("Laser Eyes: OFF", clientPage, function(b)
-    lasersEnabled = not lasersEnabled
-    b.Text = lasersEnabled and "Laser Eyes: ON" or "Laser Eyes: OFF"
-end)
+createStyledBtn("Rainbow Lasers: OFF", clientPage, function(b) lasersEnabled = not lasersEnabled; b.Text = lasersEnabled and "Rainbow Lasers: ON" or "Rainbow Lasers: OFF" end)
+createStyledBtn("Client Invis: OFF", clientPage, function(b) invisible = not invisible; b.Text = invisible and "Client Invis: ON" or "Client Invis: OFF" end)
 createStyledBtn("Sparkles", clientPage, function() toggleEffect("Sparkles", "SparkleEffect") end)
 createStyledBtn("Fire", clientPage, function() toggleEffect("Fire", "FireEffect") end)
 createStyledBtn("Water", clientPage, function() toggleEffect("Smoke", "WaterEffect") end)
 
--- PLAYER LIST
-local function refreshPlayers()
-    playerPage:ClearAllChildren()
-    Instance.new("UIListLayout", playerPage).Padding = UDim.new(0, 10)
-    createStyledBtn("REFRESH LIST", playerPage, refreshPlayers).BackgroundColor3 = Color3.fromRGB(40,0,0)
-    for i, p in pairs(Players:GetPlayers()) do
+-- PLAYERS TAB
+local playerScroll = Instance.new("ScrollingFrame", playerPage)
+playerScroll.Size = UDim2.new(1, 0, 1, -95); playerScroll.Position = UDim2.new(0, 0, 0, 95); playerScroll.BackgroundTransparency = 1; playerScroll.ScrollBarThickness = 4
+Instance.new("UIListLayout", playerScroll).Padding = UDim.new(0, 10)
+
+local function updateView(targetPlayer)
+    if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("Humanoid") then
+        camera.CameraSubject = targetPlayer.Character.Humanoid; stopBtn.Text = "STOP: "..targetPlayer.DisplayName:upper(); viewNav.Visible = true
+    end
+end
+
+local function refreshPlayers(filter)
+    playerScroll:ClearAllChildren()
+    Instance.new("UIListLayout", playerScroll).Padding = UDim.new(0, 10)
+    for _, p in pairs(Players:GetPlayers()) do
         if p ~= player then
-            local row = Instance.new("Frame", playerPage)
-            row.Size = UDim2.new(1, -10, 0, 40); row.BackgroundTransparency = 1
-            createStyledBtn("TP", row, function() player.Character:MoveTo(p.Character.PrimaryPart.Position) end).Size = UDim2.new(0.3, 0, 1, 0)
-            local vw = createStyledBtn("VIEW: "..p.DisplayName, row, function()
-                camera.CameraSubject = p.Character:FindFirstChild("Humanoid")
-                stopBtn.Text = "STOP: "..p.DisplayName:upper(); viewNav.Visible = true
-            end)
-            vw.Size = UDim2.new(0.65, 0, 1, 0); vw.Position = UDim2.new(0.35, 0, 0, 0)
+            if not filter or p.DisplayName:lower():find(filter:lower()) or p.Name:lower():find(filter:lower()) then
+                local row = Instance.new("Frame", playerScroll); row.Size = UDim2.new(1, -10, 0, 40); row.BackgroundTransparency = 1
+                createStyledBtn("TP", row, function() player.Character:SetPrimaryPartCFrame(p.Character.PrimaryPart.CFrame) end).Size = UDim2.new(0.2, 0, 1, 0)
+                local vw = createStyledBtn("VIEW: " .. p.DisplayName, row, function() updateView(p) end)
+                vw.Size = UDim2.new(0.75, 0, 1, 0); vw.Position = UDim2.new(0.25, 0, 0, 0)
+            end
         end
     end
 end
+
+local searchBox = createStyledInput("Search players...", playerPage, function() end)
+searchBox.Position = UDim2.new(0,0,0,0)
+searchBox:GetPropertyChangedSignal("Text"):Connect(function() refreshPlayers(searchBox.Text) end)
+local manualRef = createStyledBtn("REFRESH PLAYER LIST", playerPage, function() refreshPlayers(searchBox.Text) end)
+manualRef.Position = UDim2.new(0, 0, 0, 45); manualRef.BackgroundColor3 = Color3.fromRGB(40, 0, 0)
+
+nextBtn.MouseButton1Click:Connect(function()
+    local t = {}; for _, p in pairs(Players:GetPlayers()) do if p ~= player then table.insert(t, p) end end
+    if #t > 0 then viewingIndex = (viewingIndex % #t) + 1; updateView(t[viewingIndex]) end
+end)
+prevBtn.MouseButton1Click:Connect(function()
+    local t = {}; for _, p in pairs(Players:GetPlayers()) do if p ~= player then table.insert(t, p) end end
+    if #t > 0 then viewingIndex = (viewingIndex - 2 + #t) % #t + 1; updateView(t[viewingIndex]) end
+end)
+stopBtn.MouseButton1Click:Connect(function() camera.CameraSubject = player.Character:FindFirstChild("Humanoid"); viewNav.Visible = false end)
 refreshPlayers()
+
+-- WORLD
+createStyledBtn("ESP: OFF", worldPage, function(b) espEnabled = not espEnabled; b.Text = espEnabled and "ESP: ON" or "ESP: OFF" end)
+local function createESP(p)
+    if screenGui:FindFirstChild("ESP_"..p.Name) then return end
+    local f = Instance.new("Folder", screenGui); f.Name = "ESP_"..p.Name
+    local bg = Instance.new("BillboardGui", f); bg.AlwaysOnTop = true; bg.Size = UDim2.new(4, 0, 5, 0); bg.Name = "UI"
+    local box = Instance.new("Frame", bg); box.Size = UDim2.new(1, 0, 1, 0); box.BackgroundTransparency = 0.7; box.BackgroundColor3 = Color3.new(1, 0, 0)
+    Instance.new("UIStroke", box).Color = Color3.new(1,0,0)
+    local txt = Instance.new("TextLabel", bg); txt.Text = p.DisplayName; txt.Size = UDim2.new(2, 0, 0.5, 0); txt.Position = UDim2.new(-0.5, 0, -0.7, 0)
+    txt.TextColor3 = Color3.new(1,1,1); txt.BackgroundTransparency = 1; txt.Font = Enum.Font.SourceSansBold; txt.TextSize = 16
+end
 
 -- SERVER
 createStyledBtn("SERVER HOP", serverPage, function()
@@ -259,94 +247,62 @@ end)
 createStyledBtn("KICK SELF", serverPage, function() player:Kick("You kicked yourself! 😉") end)
 
 -- MUSIC
-local playingText = Instance.new("TextLabel", musicPage)
-playingText.Size = UDim2.new(1, -10, 0, 20); playingText.BackgroundTransparency = 1; playingText.TextColor3 = Color3.new(0, 0.6, 1)
-playingText.Text = "Nothing Playing"; playingText.Font = Enum.Font.SourceSansItalic; playingText.TextSize = 14
-createStyledInput("Enter Sound ID...", musicPage, function(v)
+local pLab = Instance.new("TextLabel", musicPage); pLab.Size = UDim2.new(1, -10, 0, 20); pLab.BackgroundTransparency = 1; pLab.TextColor3 = Color3.new(1,0,0); pLab.Text = "No Music"
+createStyledInput("Sound ID...", musicPage, function(v) 
     local id = v:match("%d+")
-    if id then clientSound:Stop() clientSound.SoundId = "rbxassetid://"..id clientSound:Play() playingText.Text = "Playing ID: "..id end
+    if id then clientSound:Stop(); clientSound.SoundId = "rbxassetid://"..id; clientSound:Play(); pLab.Text = "Playing: "..id end
 end)
-createStyledBtn("STOP MUSIC", musicPage, function() clientSound:Stop() playingText.Text = "Music Stopped" end)
-
--- WORLD (ESP)
-createStyledBtn("ESP: OFF", worldPage, function(b) espEnabled = not espEnabled; b.Text = espEnabled and "ESP: ON" or "ESP: OFF" end)
-
--- NAV LOGIC
-stopBtn.MouseButton1Click:Connect(function() camera.CameraSubject = player.Character:FindFirstChild("Humanoid"); viewNav.Visible = false end)
-
--- ESP LOGIC
-local function createESP(p)
-    if screenGui:FindFirstChild("ESP_"..p.Name) then return end
-    local folder = Instance.new("Folder", screenGui); folder.Name = "ESP_"..p.Name
-    local bg = Instance.new("BillboardGui", folder)
-    bg.AlwaysOnTop = true; bg.Size = UDim2.new(4, 0, 5, 0); bg.Name = "UI"; bg.ZIndexBehavior = Enum.ZIndexBehavior.Global
-    local box = Instance.new("Frame", bg); box.Size = UDim2.new(1, 0, 1, 0); box.BackgroundTransparency = 0.7; box.BackgroundColor3 = Color3.new(1, 0, 0)
-    Instance.new("UIStroke", box).Color = Color3.new(1,0,0)
-    local txt = Instance.new("TextLabel", bg)
-    txt.Text = p.DisplayName; txt.Size = UDim2.new(2, 0, 0.5, 0); txt.Position = UDim2.new(-0.5, 0, -0.7, 0)
-    txt.TextColor3 = Color3.new(1,1,1); txt.BackgroundTransparency = 1; txt.Font = Enum.Font.SourceSansBold; txt.TextSize = 16; txt.ZIndex = 10
-end
+createStyledBtn("STOP MUSIC", musicPage, function() clientSound:Stop(); pLab.Text = "Stopped" end)
 
 -- MAIN LOOPS
 RunService.Stepped:Connect(function()
-    if player.Character and player.Character:FindFirstChild("Humanoid") then
-        player.Character.Humanoid.WalkSpeed = walkSpeed
-        player.Character.Humanoid.JumpPower = jumpPower
+    local char = player.Character
+    if char and char:FindFirstChild("Humanoid") then
+        char.Humanoid.WalkSpeed = walkSpeed; char.Humanoid.JumpPower = jumpPower
+        local anims = char:FindFirstChild("Animate")
+        if anims then anims.Disabled = noAnims end
     end
-    if noclip and player.Character then
-        for _, part in pairs(player.Character:GetDescendants()) do if part:IsA("BasePart") then part.CanCollide = false end end
+    if char and invisible then
+        for _, part in pairs(char:GetDescendants()) do if part:IsA("BasePart") or part:IsA("Decal") then part.LocalTransparencyModifier = 1 end end
+    elseif char then
+        for _, part in pairs(char:GetDescendants()) do if part:IsA("BasePart") or part:IsA("Decal") then part.LocalTransparencyModifier = 0 end end
+    end
+    if noclip and char then
+        for _, part in pairs(char:GetDescendants()) do if part:IsA("BasePart") then part.CanCollide = false end end
     end
     for _, p in pairs(Players:GetPlayers()) do
-        local folder = screenGui:FindFirstChild("ESP_"..p.Name)
+        local f = screenGui:FindFirstChild("ESP_"..p.Name)
         if espEnabled and p ~= player and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-            if not folder then createESP(p) else folder.UI.Adornee = p.Character.HumanoidRootPart end
-        elseif folder then folder:Destroy() end
+            if not f then createESP(p) else f.UI.Adornee = p.Character.HumanoidRootPart end
+        elseif f then f:Destroy() end
     end
 end)
 
 RunService.RenderStepped:Connect(function()
-    local char = player.Character
-    local head = char and char:FindFirstChild("Head")
-    local root = char and char:FindFirstChild("HumanoidRootPart")
-    
-    -- Laser Logic
+    local char = player.Character; local head = char and char:FindFirstChild("Head"); local root = char and char:FindFirstChild("HumanoidRootPart")
     if lasersEnabled and head then
-        laserL.Enabled = true laserR.Enabled = true
-        attL0.Parent = head attR0.Parent = head
-        attL1.Parent = workspace.Terrain attR1.Parent = workspace.Terrain
-        laserL.Parent = head laserR.Parent = head
-        attL0.Position = Vector3.new(-0.2, 0.2, -0.5)
-        attR0.Position = Vector3.new(0.2, 0.2, -0.5)
-        local targetPos = mouse.Hit.Position
-        attL1.Position = targetPos attR1.Position = targetPos
-    else
-        laserL.Enabled = false laserR.Enabled = false
-    end
-
-    -- Fly Logic
+        local color = Color3.fromHSV(tick() % 5 / 5, 1, 1)
+        laserL.Enabled = true; laserR.Enabled = true; laserL.Color = ColorSequence.new(color); laserR.Color = ColorSequence.new(color)
+        attL0.Parent = head; attR0.Parent = head; attL1.Parent = workspace.Terrain; attR1.Parent = workspace.Terrain
+        laserL.Parent = head; laserR.Parent = head; attL0.Position = Vector3.new(-0.2, 0.2, -0.5); attR0.Position = Vector3.new(0.2, 0.2, -0.5)
+        attL1.Position = mouse.Hit.Position; attR1.Position = mouse.Hit.Position
+    else laserL.Enabled = false; laserR.Enabled = false end
     if flying and root and root:FindFirstChild("FlyV") then
         local dir = Vector3.new(0,0,0)
         if UserInputService:IsKeyDown(Enum.KeyCode.W) then dir = dir + camera.CFrame.LookVector end
         if UserInputService:IsKeyDown(Enum.KeyCode.S) then dir = dir - camera.CFrame.LookVector end
         if UserInputService:IsKeyDown(Enum.KeyCode.A) then dir = dir - camera.CFrame.RightVector end
         if UserInputService:IsKeyDown(Enum.KeyCode.D) then dir = dir + camera.CFrame.RightVector end
-        root.FlyV.Velocity = dir * flySpeed
-        root.FlyG.CFrame = camera.CFrame
+        root.FlyV.Velocity = dir * flySpeed; root.FlyG.CFrame = camera.CFrame
     end
 end)
 
-UserInputService.JumpRequest:Connect(function()
-    if infJump and player.Character and player.Character:FindFirstChildOfClass("Humanoid") then
-        player.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping")
-    end
-end)
+UserInputService.JumpRequest:Connect(function() if infJump and player.Character and player.Character:FindFirstChildOfClass("Humanoid") then player.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping") end end)
 
--- Dragging
 local dragging, dragStart, startPos
-topBar.InputBegan:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = true dragStart = input.Position startPos = mainFrame.Position end end)
-UserInputService.InputChanged:Connect(function(input) if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then local delta = input.Position - dragStart mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y) end end)
+topBar.InputBegan:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = true; dragStart = input.Position; startPos = mainFrame.Position end end)
+UserInputService.InputChanged:Connect(function(input) if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then local delta = input.Position - dragStart; mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y) end end)
 UserInputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end end)
-
 closeBtn.MouseButton1Click:Connect(function() mainFrame.Visible = false; openBtn.Visible = true end)
 openBtn.MouseButton1Click:Connect(function() mainFrame.Visible = true; openBtn.Visible = false end)
 pages["Self"].Visible = true
