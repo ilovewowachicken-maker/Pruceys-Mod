@@ -1,3 +1,114 @@
+--[=[ 
+    INSTRUCTIONS: 
+    Paste this block at the very top of your script. 
+    It will show the "Pruceys Mod" screen, then delete itself.
+--]=]
+
+local function CreateLoadingScreen()
+    local Players = game:GetService("Players")
+    local lp = Players.LocalPlayer
+    
+    -- Create the ScreenGui
+    local sg = Instance.new("ScreenGui")
+    sg.Name = "PruceysLoader"
+    sg.IgnoreGuiInset = true
+    sg.DisplayOrder = 999 
+    sg.Parent = game:GetService("CoreGui") 
+
+    -- Background
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(1, 0, 1, 0)
+    frame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+    frame.BorderSizePixel = 0
+    frame.Parent = sg
+
+    -- Helper function to add stroke/outline
+    local function AddStroke(parent)
+        local stroke = Instance.new("UIStroke")
+        stroke.Thickness = 2
+        stroke.Transparency = 0
+        stroke.Color = Color3.fromRGB(0, 0, 0)
+        stroke.Parent = parent
+        return stroke
+    end
+
+    -- Big Title (RED + LARGER)
+    local title = Instance.new("TextLabel")
+    title.Text = "Pruceys Mod"
+    title.Size = UDim2.new(1, 0, 0, 100)
+    title.Position = UDim2.new(0, 0, 0.4, -40) -- Adjusted for size
+    title.BackgroundTransparency = 1
+    title.TextColor3 = Color3.fromRGB(255, 0, 0)
+    title.Font = Enum.Font.GothamBold
+    title.TextSize = 90 -- Increased size
+    title.Parent = frame
+    AddStroke(title)
+
+    -- V.6 Label (WHITE)
+    local version = Instance.new("TextLabel")
+    version.Text = "V.6"
+    version.Size = UDim2.new(1, 0, 0, 30)
+    version.Position = UDim2.new(0, 0, 0.4, 65)
+    version.BackgroundTransparency = 1
+    version.TextColor3 = Color3.fromRGB(255, 255, 255)
+    version.Font = Enum.Font.GothamMedium
+    version.TextSize = 24
+    version.Parent = frame
+    AddStroke(version)
+
+    -- Status Message (RED)
+    local statusLabel = Instance.new("TextLabel")
+    statusLabel.Text = "Loading..."
+    statusLabel.Size = UDim2.new(1, 0, 0, 30)
+    statusLabel.Position = UDim2.new(0, 0, 0.6, 25)
+    statusLabel.BackgroundTransparency = 1
+    statusLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
+    statusLabel.Font = Enum.Font.Gotham
+    statusLabel.TextSize = 18
+    statusLabel.Parent = frame
+    AddStroke(statusLabel)
+
+    -- Loading Bar Background
+    local barBg = Instance.new("Frame")
+    barBg.Size = UDim2.new(0, 450, 0, 4)
+    barBg.Position = UDim2.new(0.5, -225, 0.6, 10)
+    barBg.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    barBg.BorderSizePixel = 0
+    barBg.Parent = frame
+
+    -- Loading Bar Progress (WHITE)
+    local barFill = Instance.new("Frame")
+    barFill.Size = UDim2.new(0, 0, 1, 0)
+    barFill.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    barFill.BorderSizePixel = 0
+    barFill.Parent = barBg
+
+    -- Audio Setup
+    local sound = Instance.new("Sound")
+    sound.SoundId = "rbxassetid://170765130" -- Clean "Success" chime
+    sound.Volume = 0.5
+    sound.Parent = frame
+
+    -- Animation Logic
+    task.wait(0.5)
+    barFill:TweenSize(UDim2.new(1, 0, 1, 0), "Out", "Quad", 2.5, true)
+    
+    task.wait(2.5)
+    
+    -- Finish Sequence
+    sound:Play() -- Play the chime
+    barFill.BackgroundColor3 = Color3.fromRGB(0, 255, 0) -- Green
+    statusLabel.Text = "Welcome, " .. lp.Name .. "!"
+    
+    task.wait(1.5) 
+
+    sg:Destroy()
+end
+
+-- Run the loading screen
+CreateLoadingScreen()
+
+-- YOUR ORIGINAL SCRIPT STARTS BELOW HERE --
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
