@@ -264,7 +264,7 @@ local nextBtn = Instance.new("TextButton", viewNav); styleNavBtn(nextBtn, ">", U
 
 -- State
 local pages = {}
-local flying, noclip, espEnabled, infJump = false, false, false, false
+local flying, noclip, espEnabled, infJump, spinning = false, false, false, false, false
 local lasersEnabled, invisible, noAnims = false, false, false
 local flySpeed, walkSpeed, jumpPower = 50, 16, 50
 local viewingIndex = 1
@@ -416,6 +416,24 @@ createStyledBtn("Fly: OFF", selfPage, function(b)
 end)
 createStyledBtn("Noclip: OFF", selfPage, function(b) noclip = not noclip; b.Text = noclip and "Noclip: ON" or "Noclip: OFF" end)
 createStyledBtn("Inf Jump: OFF", selfPage, function(b) infJump = not infJump; b.Text = infJump and "Inf Jump: ON" or "Inf Jump: OFF" end)
+
+-- Added Spin Bot Button
+createStyledBtn("Spin Bot: OFF", selfPage, function(b)
+    spinning = not spinning
+    b.Text = spinning and "Spin Bot: ON" or "Spin Bot: OFF"
+    local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+    if root then
+        if spinning then
+            local velocity = Instance.new("BodyAngularVelocity")
+            velocity.Name = "SpinVelocity"
+            velocity.MaxTorque = Vector3.new(0, math.huge, 0)
+            velocity.AngularVelocity = Vector3.new(0, 100, 0)
+            velocity.Parent = root
+        else
+            if root:FindFirstChild("SpinVelocity") then root.SpinVelocity:Destroy() end
+        end
+    end
+end)
 
 -- CLIENT TAB
 createStyledBtn("Performance Overlay: OFF", clientPage, function(b)
