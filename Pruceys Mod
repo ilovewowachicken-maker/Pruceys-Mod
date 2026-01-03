@@ -51,7 +51,7 @@ local function CreateLoadingScreen()
 
     -- V.6 Label
     local version = Instance.new("TextLabel")
-    version.Text = "V.6"
+    version.Text = "V.12"
     version.Size = UDim2.new(1, 0, 0, 30)
     version.Position = UDim2.new(0, 0, 0.4, 65)
     version.BackgroundTransparency = 1
@@ -636,5 +636,18 @@ UserInputService.InputChanged:Connect(function(input) if dragging and input.User
 UserInputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end end)
 closeBtn.MouseButton1Click:Connect(function() mainFrame.Visible = false; openBtn.Visible = true end)
 openBtn.MouseButton1Click:Connect(function() mainFrame.Visible = true; openBtn.Visible = false end)
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if not gameProcessed and input.KeyCode == Enum.KeyCode.RightShift then
+        mainFrame.Visible = not mainFrame.Visible
+        openBtn.Visible = not mainFrame.Visible
+    end
+end)
 
 pages["Self"].Visible = true
+
+-- Add to the bottom of your script
+local VirtualUser = game:GetService("VirtualUser")
+player.Idled:Connect(function()
+    VirtualUser:CaptureController()
+    VirtualUser:ClickButton2(Vector2.new())
+end)
