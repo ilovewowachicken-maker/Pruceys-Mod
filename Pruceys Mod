@@ -12,8 +12,13 @@ local function CreateLoadingScreen()
     local sg = Instance.new("ScreenGui")
     sg.Name = "PruceysLoader"
     sg.IgnoreGuiInset = true
-    sg.DisplayOrder = 999 
-    sg.Parent = game:GetService("CoreGui") 
+    sg.DisplayOrder = 2147483647 
+    
+    -- Try to parent to CoreGui for highest priority
+    local success, err = pcall(function()
+        sg.Parent = game:GetService("CoreGui")
+    end)
+    if not success then sg.Parent = lp:WaitForChild("PlayerGui") end
 
     -- Background
     local frame = Instance.new("Frame")
@@ -32,19 +37,19 @@ local function CreateLoadingScreen()
         return stroke
     end
 
-    -- Big Title (RED + LARGER)
+    -- Big Title
     local title = Instance.new("TextLabel")
     title.Text = "Pruceys Mod"
     title.Size = UDim2.new(1, 0, 0, 100)
-    title.Position = UDim2.new(0, 0, 0.4, -40) -- Adjusted for size
+    title.Position = UDim2.new(0, 0, 0.4, -40)
     title.BackgroundTransparency = 1
     title.TextColor3 = Color3.fromRGB(255, 0, 0)
     title.Font = Enum.Font.GothamBold
-    title.TextSize = 90 -- Increased size
+    title.TextSize = 90
     title.Parent = frame
     AddStroke(title)
 
-    -- V.6 Label (WHITE)
+    -- V.6 Label
     local version = Instance.new("TextLabel")
     version.Text = "V.6"
     version.Size = UDim2.new(1, 0, 0, 30)
@@ -56,7 +61,7 @@ local function CreateLoadingScreen()
     version.Parent = frame
     AddStroke(version)
 
-    -- Status Message (RED)
+    -- Status Message
     local statusLabel = Instance.new("TextLabel")
     statusLabel.Text = "Loading..."
     statusLabel.Size = UDim2.new(1, 0, 0, 30)
@@ -76,7 +81,7 @@ local function CreateLoadingScreen()
     barBg.BorderSizePixel = 0
     barBg.Parent = frame
 
-    -- Loading Bar Progress (WHITE)
+    -- Loading Bar Progress
     local barFill = Instance.new("Frame")
     barFill.Size = UDim2.new(0, 0, 1, 0)
     barFill.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
@@ -85,36 +90,32 @@ local function CreateLoadingScreen()
 
     -- Audio Setup
     local sound = Instance.new("Sound")
-    sound.SoundId = "rbxassetid://170765130" -- Clean "Success" chime
+    sound.SoundId = "rbxassetid://170765130"
     sound.Volume = 0.5
     sound.Parent = frame
 
-    -- Animation Logic
     task.wait(0.5)
     barFill:TweenSize(UDim2.new(1, 0, 1, 0), "Out", "Quad", 2.5, true)
-    
     task.wait(2.5)
     
-    -- Finish Sequence
-    sound:Play() -- Play the chime
-    barFill.BackgroundColor3 = Color3.fromRGB(0, 255, 0) -- Green
+    sound:Play()
+    barFill.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
     statusLabel.Text = "Welcome, " .. lp.Name .. "!"
-    
     task.wait(1.5) 
 
     sg:Destroy()
 end
 
--- Run the loading screen
 CreateLoadingScreen()
 
--- YOUR ORIGINAL SCRIPT STARTS BELOW HERE --
+-- MAIN MOD SCRIPT --
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
 local Stats = game:GetService("Stats")
+local CoreGui = game:GetService("CoreGui")
 
 local player = Players.LocalPlayer
 local camera = workspace.CurrentCamera
@@ -123,10 +124,20 @@ local mouse = player:GetMouse()
 local clientSound = player:FindFirstChild("PruceyModSound") or Instance.new("Sound", player)
 clientSound.Name = "PruceyModSound"
 
--- UI Setup
-local screenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+-- UPDATED UI SETUP (FORCED FORWARD)
+local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "PruceysModUI"
 screenGui.ResetOnSpawn = false
+screenGui.IgnoreGuiInset = true
+screenGui.DisplayOrder = 2147483647 -- Maximum possible order
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+local success, err = pcall(function()
+    screenGui.Parent = CoreGui
+end)
+if not success then
+    screenGui.Parent = player:WaitForChild("PlayerGui")
+end
 
 -- MOVABLE PERFORMANCE OVERLAY
 local perfFrame = Instance.new("Frame", screenGui)
@@ -259,7 +270,7 @@ local flySpeed, walkSpeed, jumpPower = 50, 16, 50
 local viewingIndex = 1
 local waypoints = {}
 
--- ESP Logic (External Drawing Library required or standard Billboard)
+-- ESP Logic
 local espObjects = {}
 local function createESP(plr)
     local box = Drawing.new("Square")
@@ -308,7 +319,6 @@ local function createStyledInput(placeholder, parent, callback)
     return tb
 end
 
--- SLIDER HELPER
 local function createStyledSlider(text, min, max, default, parent, callback)
     local sliderFrame = Instance.new("Frame", parent)
     sliderFrame.Size = UDim2.new(1, -10, 0, 50)
@@ -410,9 +420,7 @@ createStyledBtn("Inf Jump: OFF", selfPage, function(b) infJump = not infJump; b.
 -- CLIENT TAB
 createStyledBtn("Performance Overlay: OFF", clientPage, function(b)
     perfFrame.Visible = not perfFrame.Visible
-    if perfFrame.Visible then
-        perfFrame.Position = UDim2.new(0.5, -65, 0.5, -35)
-    end
+    if perfFrame.Visible then perfFrame.Position = UDim2.new(0.5, -65, 0.5, -35) end
     b.Text = perfFrame.Visible and "Performance Overlay: ON" or "Performance Overlay: OFF"
 end)
 
@@ -436,7 +444,6 @@ end
 
 createStyledBtn("Rainbow Lasers: OFF", clientPage, function(b) lasersEnabled = not lasersEnabled; b.Text = lasersEnabled and "Rainbow Lasers: ON" or "Rainbow Lasers: OFF" end)
 
--- FIXED CLIENT INVISIBLE
 createStyledBtn("Client Invis: OFF", clientPage, function(b) 
     invisible = not invisible; 
     b.Text = invisible and "Client Invis: ON" or "Client Invis: OFF"
@@ -558,7 +565,6 @@ end)
 
 local lastPerfUpdate = 0
 RunService.RenderStepped:Connect(function(dt)
-    -- Perf Update logic
     if tick() - lastPerfUpdate > 0.5 then
         lastPerfUpdate = tick()
         fpsLabel.Text = "FPS: " .. math.floor(1/dt)
@@ -567,34 +573,24 @@ RunService.RenderStepped:Connect(function(dt)
         timeLabel.Text = os.date("%I:%M:%S %p")
     end
 
-    -- ESP SYSTEM RENDER
     for plr, obj in pairs(espObjects) do
         if espEnabled and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") and plr.Character:FindFirstChild("Humanoid") and plr.Character.Humanoid.Health > 0 then
             local rootPos, onScreen = camera:WorldToViewportPoint(plr.Character.HumanoidRootPart.Position)
             if onScreen then
                 local headPos = camera:WorldToViewportPoint(plr.Character.Head.Position + Vector3.new(0, 0.5, 0))
                 local legPos = camera:WorldToViewportPoint(plr.Character.HumanoidRootPart.Position - Vector3.new(0, 3, 0))
-                
                 obj.Box.Size = Vector2.new(2500 / rootPos.Z, headPos.Y - legPos.Y)
                 obj.Box.Position = Vector2.new(rootPos.X - obj.Box.Size.X / 2, rootPos.Y - obj.Box.Size.Y / 2)
                 obj.Box.Visible = true
-
                 obj.Name.Text = plr.DisplayName
                 obj.Name.Position = Vector2.new(rootPos.X, rootPos.Y - obj.Box.Size.Y / 2 - 20)
                 obj.Name.Visible = true
-            else
-                obj.Box.Visible = false
-                obj.Name.Visible = false
-            end
-        else
-            obj.Box.Visible = false
-            obj.Name.Visible = false
-        end
+            else obj.Box.Visible = false; obj.Name.Visible = false end
+        else obj.Box.Visible = false; obj.Name.Visible = false end
     end
 
     local char = player.Character; local head = char and char:FindFirstChild("Head"); local root = char and char:FindFirstChild("HumanoidRootPart")
     
-    -- Laser logic
     if lasersEnabled and head then
         local color = Color3.fromHSV(tick() % 5 / 5, 1, 1)
         laserL.Enabled = true; laserR.Enabled = true; laserL.Color = ColorSequence.new(color); laserR.Color = ColorSequence.new(color)
@@ -603,7 +599,6 @@ RunService.RenderStepped:Connect(function(dt)
         attL1.Position = mouse.Hit.Position; attR1.Position = mouse.Hit.Position
     else laserL.Enabled = false; laserR.Enabled = false end
 
-    -- Fly logic
     if flying and root and root:FindFirstChild("FlyV") then
         local dir = Vector3.new(0,0,0)
         if UserInputService:IsKeyDown(Enum.KeyCode.W) then dir = dir + camera.CFrame.LookVector end
